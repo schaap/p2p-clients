@@ -1,0 +1,22 @@
+This repository contains clients that have been prepared for use with the P2P test framework. Download and unpack the clients you need, then point the location parameter of your client to the unpacked client.
+
+For example, mimicking my setup:
+
+mkdir clients
+cd clients
+git clone https://github.com/schaap/p2p-clients .
+tar xf opentracker.tar.bz2
+cd ../p2p-testframework
+# Use your favourite editor to change the files you need, in my case this would be:
+vim TestSpecs/clients/opentracker
+# Point the location to the right directory, in my case the client looks like this:
+#   [parser:none]
+#   [client:opentracker]
+#   port=16999
+#   location=../clients/opentracker
+#   source=local
+#   builder=make
+#   remoteClient=yes
+# Now close your editor and run a campaign that uses the opentracker.
+./ControlScript/run_campaign.sh TestSpecs/testopentracker
+# And no, you won't find my opentracker specific test scripts in the p2p-testframework repo. You'll have to make those yourself. The client module is there, though.
