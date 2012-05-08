@@ -1,0 +1,20 @@
+#/bin/bash
+
+if ! which pkg-config > /dev/null 2> /dev/null; then
+    echo "Warning! pkg-config not found, not autodetecting libtorrent-rasterbar. Make sure CFLAGS and/or LDFLAGS are filled in properly."
+
+    # No flags whatsoever, add libraries we know are required
+    if [ "x$CFLAGS$LDFLAGS" == "x" ]; then
+        FLAGS="-ltorrent-rasterbar"
+    fi
+else
+    if ! pkg-config --exists libtorrent-rasterbar; then
+        echo "libtorrent-rasterbar.pc not found, please make sure the development files for libtorrent-rasterbar are installed and the directory containing the .pc file (usually: [prefix]/lib/pkgconfig where [prefix] is the prefix under which libtorrent-rasterbar was installed) is included in the environment variable PKG_CONFIG_DIR."
+        exit 1
+    fi
+    FLAGS=`pkg-config --libs --cflags --static libtorrent-rasterbar`
+fi
+
+
+echo g++ $FLAGS $CFLAGS $LDFLAGS -o libtorrent
+g++ $FLAGS $CFLAGS $LDFLAGS -o libtorrent client.cpp

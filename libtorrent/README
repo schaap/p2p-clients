@@ -1,0 +1,9 @@
+This is a very small client for libtorrent. It can do simple downloading and seeding using libtorrent.
+
+Info on using the client:
+    ./libtorrent
+
+Building the client can be done using the build-script, which can use pkg-config to figure out the flags. Paths still need to be set by you. If you have everything installed in your home directory, for example, the following line should work:
+    PKG_CONFIG_PATH=~/lib/pkgconfig LDFLAGS=-L~/lib CFLAGS=-I~/include ./build-script
+
+Required packages are libtorrent-rasterbar and boost (since libtorrent uses it).
