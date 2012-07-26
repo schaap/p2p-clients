@@ -19,10 +19,12 @@
 // libtorrent needs boost, anyway
 // so why not use it ourselves?
 #include <boost/filesystem.hpp>
+#include <boost/asio.hpp>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/peer_info.hpp"
 
 
 float difftime( const struct timeval& from, const struct timeval& to ) {
@@ -69,6 +71,7 @@ int main(int argc, char* argv[])
             switch (argv[i][1])
             {
                 case 's': 
+                    std::cerr << "Seeding mode" << std::endl;
                     seeder = true;
                     break;
                 case 'o':
@@ -131,6 +134,14 @@ int main(int argc, char* argv[])
     }
 
     session s;
+    struct session_settings ss = s.settings();
+    ss.allow_multiple_connections_per_ip = true;
+    ss.active_downloads = -1;
+    ss.active_seeds = -1;
+    ss.active_limit = 100000;
+    ss.active_tracker_limit = 100000;
+    ss.incoming_starts_queued_torrents = true;
+    s.set_settings( ss );
    
     // check if we have to set a random port
     srand((unsigned)time(0));
@@ -146,13 +157,15 @@ int main(int argc, char* argv[])
    
     for( std::list<std::string>::iterator i = torrents.begin(); i != torrents.end(); i++ ) {
         std::string& torrent = *i;
+        std::cerr << "Opening " << torrent << "\n";
         add_torrent_params p;
         p.save_path = save_path;
         error_code ec;
         p.ti = new torrent_info(torrent, ec);
         if (ec)
         {
-            std::cout << ec.message() << std::endl;
+            std::cerr << "Could not create torrent_info" << std::endl;
+            std::cerr << ec.message() << std::endl;
             return 1;
         }
         torrent_handle h = s.add_torrent(p, ec);
@@ -161,9 +174,11 @@ int main(int argc, char* argv[])
             h.set_sequential_download(true);
         if (ec)
         {
+            std::cerr << "Could not add torrent" << std::endl;
             std::cerr << ec.message() << std::endl;
             return 1;
         }
+        h.apply_ip_filter(false);
         handles.push_back(h);
     }
 
@@ -188,6 +203,39 @@ int main(int argc, char* argv[])
             progress += h.status().progress_ppm;
             if(h.status().state != 5)
                 allComplete = false;
+            // SCHAAP: If you want quite extended info on your torrents...
+            /*
+            std::cerr << "Data on torrent " << h.name() << std::endl;
+            const std::vector<announce_entry> trackers = h.trackers();
+            for( std::vector<announce_entry>::const_iterator it = trackers.begin(); it != trackers.end(); it++ ) {
+                announce_entry ae = *it;
+                std::cerr << "-- Tracker " << ae.url << " : ";
+                if( ae.updating ) {
+                    if( ae.verified )
+                        std::cerr << "(waiting for response, verified)";
+                    else
+                        std::cerr << "(waiting for response)";
+                }
+                else {
+                    if( ae.verified )
+                        std::cerr << "(verified)";
+                    else
+                        std::cerr << "(unknown)";
+                }
+                std::cerr << " - failed " << ae.fails << " times - last_error = " << ae.last_error << " - message = " << ae.message << std::endl;
+            }
+            std::vector<peer_info> v_pe;
+            h.get_peer_info( v_pe );
+            for( std::vector<peer_info>::iterator it = v_pe.begin(); it != v_pe.end(); it++ ) {
+                peer_info& pe = *it;
+                if( pe.seed )
+                    std::cerr << "-- Seed: ";
+                else
+                    std::cerr << "-- Peer: ";
+                std::cerr << pe.ip.address().to_string() << ":" << pe.ip.port() << " - queue req down/up " << pe.download_queue_length << "/" << pe.upload_queue_length << " - failed " << pe.failcount << " - has " << pe.num_pieces << " pieces" << std::endl;
+            }
+            std::cerr << "/Data on torrent" << std::endl;
+            */
         }
         progress /= handles.size();
        
